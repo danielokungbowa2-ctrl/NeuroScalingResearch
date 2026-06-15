@@ -1,1 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NeuroScaling — Content Research</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0A0A0A; --surface: #111111; --surface-2: #1A1A1A;
+      --border: #222222; --border-hover: #333333;
+      --text: #F0F0F0; --text-secondary: #888888; --text-muted: #555555;
+      --accent: #C8F135; --accent-dim: rgba(200,241,53,0.08); --accent-border: rgba(200,241,53,0.2);
+      --red-dim: rgba(255,68,68,0.08);
+      --mono: 'IBM Plex Mono', monospace; --sans: 'Inter', sans-serif;
+      --radius: 8px; --radius-lg: 12px;
+    }
+    html, body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.6; min-height: 100vh; }
+    .layout { display: grid; grid-template-columns: 320px 1fr; min-height: 100vh; }
+    .sidebar { border-right: 1px solid var(--border); padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-mark { width: 28px; height: 28px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+    .logo-text { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+    .logo-sub { font-size: 11px; color: var(--text-muted); font-family: var(--mono); }
+    .section-head { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
+    .field input, .field textarea, .field select { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: var(--sans); font-size: 13px; padding: 9px 12px; outline: none; transition: border-color 0.15s; appearance: none; }
+    .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+    .field input::placeholder, .field textarea::placeholder { color: var(--text-muted); }
+    .field textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+    .field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 32px; cursor: pointer; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .run-btn { width: 100%; padding: 11px; background: var(--accent); color: #0A0A0A; border: none; border-radius: var(--radius); font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
+    .run-btn:hover { opacity: 0.9; }
+    .run-btn:active { transform: scale(0.98); }
+    .run-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .main { padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; min-height: 60vh; gap: 12px; color: var(--text-muted); text-align: center; }
+    .empty-icon { width: 48px; height: 48px; border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 4px; }
+    .empty-state h3 { font-size: 15px; font-weight: 500; color: var(--text-secondary); }
+    .empty-state p { font-size: 13px; max-width: 280px; line-height: 1.6; }
+    .error-banner { background: var(--red-dim); border: 1px solid rgba(255,68,68,0.25); border-radius: var(--radius); padding: 12px 16px; font-size: 13px; color: #FF8080; line-height: 1.6; display: none; }
+    .error-banner.visible { display: block; }
+    .loading-state { display: none; flex-direction: column; gap: 12px; padding: 2rem 0; }
+    .loading-state.visible { display: flex; }
+    .step { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-muted); transition: color 0.3s; }
+    .step.active { color: var(--text); }
+    .step.done { color: var(--accent); }
+    .step-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); flex-shrink: 0; transition: background 0.3s; }
+    .step.active .step-dot { background: var(--text-secondary); }
+    .step.done .step-dot { background: var(--accent); }
+    .spinner { width: 8px; height: 8px; border: 1.5px solid var(--text-muted); border-top-color: var(--text); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .results { display: none; flex-direction: column; gap: 1.5rem; }
+    .results.visible { display: flex; }
+    .results-header { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+    .results-title { font-size: 16px; font-weight: 600; }
+    .results-meta { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
+    .videos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+    .video-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px; transition: border-color 0.15s; }
+    .video-card:hover { border-color: var(--border-hover); }
+    .video-rank { font-family: var(--mono); font-size: 11px; color: var(--accent); margin-bottom: 6px; font-weight: 500; }
+    .video-title { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.4; margin-bottom: 10px; }
+    .video-stats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .stat { font-size: 11px; color: var(--text-muted); background: var(--surface-2); padding: 3px 8px; border-radius: 20px; font-family: var(--mono); }
+    .stat.views { color: var(--accent); background: var(--accent-dim); }
+    .video-link { font-size: 11px; color: var(--text-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: color 0.15s; }
+    .video-link:hover { color: var(--text-secondary); }
+    .analysis-section { background: var(--surface); border: 1px solid var(--accent-border); border-radius: var(--radius-lg); overflow: hidden; }
+    .analysis-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+    .analysis-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+    .copy-btn { font-size: 11px; color: var(--text-muted); background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-family: var(--sans); transition: color 0.15s; }
+    .copy-btn:hover { color: var(--text); }
+    .analysis-body { padding: 16px; font-size: 13px; line-height: 1.8; color: var(--text-secondary); white-space: pre-wrap; font-family: var(--mono); }
+    .script-btn { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 16px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; font-family: var(--sans); transition: border-color 0.15s, color 0.15s; text-align: left; }
+    .script-btn:hover { border-color: var(--accent-border); color: var(--text); }
+    @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); } .main { padding: 1.5rem 1rem; } }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M3 12L8 4L13 12" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M5.5 9H10.5" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-text">NeuroScaling</div>
+        <div class="logo-sub">content research</div>
+      </div>
+    </div>
 
+    <div>
+      <div class="section-head">Client</div>
+      <div class="field">
+        <label>Client name</label>
+        <input type="text" id="clientName" placeholder="e.g. Emmanuel Akerele" />
+      </div>
+      <div class="field">
+        <label>Niche</label>
+        <input type="text" id="clientNiche" placeholder="e.g. ticket reselling" />
+      </div>
+      <div class="field">
+        <label>ICP description</label>
+        <textarea id="clientICP" placeholder="Age, goal, pain point, current situation..."></textarea>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-head">Search</div>
+      <div class="field">
+        <label>Keyword</label>
+        <input type="text" id="searchQuery" placeholder="e.g. ticket reselling profit" />
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label>Time range</label>
+          <select id="timeRange">
+            <option value="30">30 days</option>
+            <option value="90" selected>90 days</option>
+            <option value="180">6 months</option>
+            <option value="365">12 months</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Videos</label>
+          <select id="resultCount">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <button class="run-btn" id="runBtn" onclick="runResearch()">Run research</button>
+  </aside>
+
+  <main class="main">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+      </div>
+      <h3>No research yet</h3>
+      <p>Fill in your client details and keyword, then hit run to pull top videos and generate content angles.</p>
+    </div>
+    <div class="error-banner" id="errorBanner"></div>
+    <div class="loading-state" id="loadingState">
+      <div class="step" id="step1"><div class="step-dot"></div>Searching YouTube</div>
+      <div class="step" id="step2"><div class="step-dot"></div>Fetching video stats</div>
+      <div class="step" id="step3"><div class="step-dot"></div>Analysing with Claude</div>
+    </div>
+    <div class="results" id="resultsSection">
+      <div class="results-header">
+        <div class="results-title" id="resultsTitle">Results</div>
+        <div class="results-meta" id="resultsMeta"></div>
+      </div>
+      <div class="videos-grid" id="videosGrid"></div>
+      <div class="analysis-section">
+        <div class="analysis-header">
+          <span class="analysis-label">Claude analysis</span>
+          <button class="copy-btn" onclick="copyAnalysis()">Copy</button>
+        </div>
+        <div class="analysis-body" id="analysisBody"></div>
+      </div>
+      <button class="script-btn" id="scriptBtn">Turn top angle into a short-form script →</button>
+    </div>
+  </main>
+</div>
+
+<script>
+  const RAPIDAPI_KEY = '6dcc76988fmsh8b59e0638a2b6cap19e1d5jsn5dec2a680c1e';
+  const RAPIDAPI_HOST = 'youtube-v3-alternative.p.rapidapi.com';
+  let lastAnalysis = '';
+  let lastClientName = '';
+
+  function setStep(n) {
+    ['step1','step2','step3'].forEach((id, i) => {
+      const el = document.getElementById(id);
+      el.classList.remove('active','done');
+      if (i < n - 1) el.classList.add('done');
+      else if (i === n - 1) el.classList.add('active');
+    });
+  }
+
+  function showError(msg) {
+    document.getElementById('errorBanner').textContent = msg;
+    document.getElementById('errorBanner').classList.add('visible');
+    document.getElementById('loadingState').classList.remove('visible');
+    document.getElementById('resultsSection').classList.remove('visible');
+    document.getElementById('emptyState').style.display = 'none';
+    resetBtn();
+  }
+
+  function resetBtn() {
+    const btn = document.getElementById('runBtn');
+    btn.disabled = false;
+    btn.textContent = 'Run research';
+  }
+
+  async function runResearch() {
+    const clientName = document.getElementById('clientName').value.trim();
+    const clientNiche = document.getElementById('clientNiche').value.trim();
+    const clientICP = document.getElementById('clientICP').value.trim();
+    const searchQuery = document.getElementById('searchQuery').value.trim();
+    const timeRange = parseInt(document.getElementById('timeRange').value);
+    const resultCount = parseInt(document.getElementById('resultCount').value);
+
+    if (!clientNiche || !searchQuery) { showError('Fill in the niche and keyword before running.'); return; }
+
+    lastClientName = clientName;
+    document.getElementById('runBtn').disabled = true;
+    document.getElementById('runBtn').textContent = 'Running...';
+    document.getElementById('errorBanner').classList.remove('visible');
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('resultsSection').classList.remove('visible');
+    document.getElementById('loadingState').classList.add('visible');
+    setStep(1);
+
+    try {
+      const searchRes = await fetch(
+        `https://${RAPIDAPI_HOST}/search?query=${encodeURIComponent(searchQuery)}&type=video&sort=relevance`,
+        { headers: { 'x-rapidapi-key': RAPIDAPI_KEY, 'x-rapidapi-host': RAPIDAPI_HOST } }
+      );
+
+      if (!searchRes.ok) {
+        const err = await searchRes.json().catch(() => ({}));
+        showError('API error: ' + (err.message || searchRes.status)); return;
+      }
+
+      const searchData = await searchRes.json();
+      const items = searchData.data || searchData.items || [];
+
+      if (!items.length) { showError('No videos found. Try a different keyword or longer time range.'); return; }
+
+      setStep(2);
+
+      const videos = items.slice(0, resultCount).map((v, i) => ({
+        id: v.videoId || v.id?.videoId || '',
+        title: v.title || v.snippet?.title || 'Untitled',
+        channel: v.channelTitle || v.snippet?.channelTitle || 'Unknown',
+        views: parseInt(v.viewCount || v.statistics?.viewCount || 0),
+        published: (v.publishedAt || v.snippet?.publishedAt || '').split('T')[0] || 'Unknown'
+      })).sort((a, b) => b.views - a.views);
+
+      setStep(3);
+
+      const videoList = videos.map((v, i) =>
+        `${i+1}. "${v.title}" by ${v.channel} — ${v.views.toLocaleString()} views (${v.published})`
+      ).join('\n');
+
+      const prompt = `You are a content strategist for a short-form and long-form video agency called NeuroScaling.
+
+Client: ${clientName || 'unnamed'}
+Niche: ${clientNiche}
+ICP: ${clientICP || 'not specified'}
+
+Top YouTube videos in this niche (last ${timeRange} days):
+
+${videoList}
+
+For each video:
+1. Hook: one sentence on why it performed
+2. Client angle: 1-2 sentences reframing it for this client's ICP
+
+End with "TOP 3 ANGLES THIS WEEK" ranked by lead generation potential, not views. Be ruthlessly specific. No filler.
+
+Format:
+VIDEO [n]: [title max 8 words]
+Hook: ...
+Client angle: ...`;
+
+      const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      const claudeData = await claudeRes.json();
+      lastAnalysis = claudeData.content?.[0]?.text || '';
+
+      document.getElementById('loadingState').classList.remove('visible');
+      document.getElementById('resultsTitle').textContent = `${clientName || clientNiche} — content research`;
+      document.getElementById('resultsMeta').textContent = `${videos.length} videos · ${searchQuery} · ${timeRange}d`;
+
+      document.getElementById('videosGrid').innerHTML = videos.map((v, i) => `
+        <div class="video-card">
+          <div class="video-rank">#${i+1}</div>
+          <div class="video-title">${esc(v.title)}</div>
+          <div class="video-stats">
+            <span class="stat views">${v.views.toLocaleString()} views</span>
+            <span class="stat">${esc(v.channel)}</span>
+            <span class="stat">${v.published}</span>
+          </div>
+          <a class="video-link" href="https://youtube.com/watch?v=${v.id}" target="_blank">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Watch on YouTube
+          </a>
+        </div>
+      `).join('');
+
+      document.getElementById('analysisBody').textContent = lastAnalysis;
+      document.getElementById('resultsSection').classList.add('visible');
+      resetBtn();
+
+    } catch(err) {
+      showError('Request failed: ' + err.message);
+    }
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function copyAnalysis() {
+    navigator.clipboard.writeText(lastAnalysis).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = 'Copied';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+  }
+</script>
+</body>
+</html>
